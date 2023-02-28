@@ -1,6 +1,7 @@
 import axios from 'axios'
+import CancelReq from './cancelReq'
 
-
+const cancelReqInstance = new CancelReq();
 // 默认携带cookie
 // axios.defaults.withCredentials = true
 export function request(config) {
@@ -17,6 +18,11 @@ export function request(config) {
     })
 
     net.interceptors.request.use(config => {
+        // 如果重复，取消上一次的
+        cancelReqInstance.cancel(config);
+        // 新增新的
+        cancelReqInstance.addKey(config, axios.CancelToken);
+
         // header中携带token信息
         let token = localStorage.getItem('token')
         token && (config.headers.Authorization = token)
@@ -24,6 +30,8 @@ export function request(config) {
     })
 
     net.interceptors.response.use(res => {
+        // 接口返回后，清除数据
+        cancelReqInstance.remove(res.config);
         return res.data
     }, err => {
         let { response } = err;
